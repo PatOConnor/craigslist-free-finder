@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 
 from cffconfig import cff_config as cf
 
+
+DB_LINK = path.dirname(__file__)+'/stuff.db'
+
 def run():
     print('Welcome to Craigslist Free Finder. Make sure you are running in fullscreen and your cffconfig file is properly set up. Have fun with the free stuff!\n')
     input('Press Enter to Continue:')
@@ -30,37 +33,36 @@ def validate_config():
 
 def get_previous_data()->list:
     #check for database
-    db_link = path.dirname(__file__)+'/stuff.db'
-    print(db_link)
-    if not path.exists(db_link):
+    print(DB_LINK)
+    if not path.exists(DB_LINK):
         #make database if none exists   
-        create_database(db_link)
+        create_database()
     #get recent search data
-    conn = create_connection(db_link)
+    conn = create_connection()
     cur = conn.cursor()
     cur.execute("""SELECT title, link 
                    FROM stuff""")
     prev_data = cur.fetchall()
     return prev_data
 
-def create_database(db_link):
+def create_database():
     sql_create_table = """CREATE TABLE IF NOT EXISTS stuff (
                             id integer PRIMARY KEY,
                             title text,
                             link text
                         );"""
-    print(db_link)
-    conn = create_connection(db_link)
+    print(DB_LINK)
+    conn = create_connection(DB_LINK)
     try:
         cur = conn.cursor()
         cur.execute(sql_create_table)
     except Error as e:
         print(e)
 
-def create_connection(db_file):
+def create_connection():
     conn = None
     try:
-        conn = sqlite3.connect(db_file)
+        conn = sqlite3.connect(DB_LINK)
         return conn
     except Error as e:
         print(e)
@@ -115,10 +117,15 @@ def print_output(new_data):
     
 #credate
 def update_db(new_data, reset=False):
+    conn = create_connection()
+    cur = conn.cursor()
     if reset:
         #delete database
-        pass
-    #add new data to database
+        cur.execute('DROP * from stuff')
+    for datum in new_data:
+        cur.execute(""" INSERT INTO stuff (title, link)
+                        VALUES (?, ?)""", datum)
+    conn.commit()
 
 if __name__=="__main__":
     run()
